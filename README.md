@@ -1,3 +1,4 @@
+[![Python package](https://github.com/FusionSolutions/python-fssignal/actions/workflows/python-package.yml/badge.svg)](https://github.com/FusionSolutions/python-fssignal/actions/workflows/python-package.yml)
 # Signal capturer
 
 ## Introduction
