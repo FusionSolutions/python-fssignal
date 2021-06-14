@@ -1,9 +1,9 @@
 # Builtin modules
 from __future__ import annotations
 import os, traceback, unittest, signal as _signal
-from threading import Timer, Event as Event
+from threading import Timer, Event
 from time import monotonic, sleep
-from typing import Callable, Dict, Any, Iterator, Iterable, Optional, Union, NewType
+from typing import Callable, Dict, Any, Iterator, Iterable, Optional, Union
 # Local modules
 # Program
 class KillSignal(Exception): pass
@@ -15,7 +15,7 @@ class SignalIterator(Iterator):
 		self.it:Iterator = it.__iter__()
 		self.checkDelay:float = checkDelay
 		self.lastCheck:float = monotonic()
-	def __iter__(self) -> Any:
+	def __iter__(self) -> Iterator:
 		return self
 	def __next__(self) -> Any:
 		m:float = monotonic()
@@ -188,13 +188,13 @@ class SignalTest(unittest.TestCase):
 				signal.sleep(0.5, raiseOnKill=True)
 				d.append(i)
 	def test_hardkill(self) -> None:
-		s:list = list(range(5))
-		d:list = []
-		i:int
 		self.killmeTimer()
+		sleep(0.1)
 		self.killmeTimer()
+		sleep(0.1)
 		self.killmeTimer()
+		sleep(0.1)
 		self.rootSignal.forceCounter = 3
 		with self.assertRaises(KillSignal):
-			self.rootSignal.sleep(3, raiseOnKill=True)
+			self.rootSignal.sleep(10, raiseOnKill=True)
 		self.rootSignal.forceCounter = 10
