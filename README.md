@@ -6,7 +6,7 @@ Signal capturer.
 
 ## Installation
 
-Requires python version 3.6 or later.
+Requires python version 3.7 or later.
 
 To install the latest release on [PyPI](https://pypi.org/project/python-fssignal/),
 simply run:
