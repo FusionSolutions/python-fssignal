@@ -28,19 +28,25 @@ class SignalIterator(Iterator):
 class BaseSignal:
 	_force:bool
 	@classmethod
-	def get(self) -> bool:
+	def check(self) -> bool:
 		if not isinstance(Signal._handler, Signal):
 			return False
-		return Signal._handler._get(self._force)
+		return Signal._handler._check(self._force)
+	@classmethod
+	def checkSoft(self) -> bool:
+		if not isinstance(Signal._handler, Signal):
+			return False
+		return Signal._handler._check(False)
+	@classmethod
+	def checkHard(self) -> bool:
+		if not isinstance(Signal._handler, Signal):
+			return False
+		return Signal._handler._check(True)
 	@classmethod
 	def sleep(self, seconds:Union[int, float], raiseOnKill:bool=False) -> None:
 		if not isinstance(Signal._handler, Signal):
 			return sleep(seconds)
 		return Signal._handler._sleep(seconds, raiseOnKill, self._force)
-	@classmethod
-	def check(self) -> None:
-		if self.get():
-			raise KillSignal
 	@classmethod
 	def signalSoftKill(self, *args, **kwargs) -> None:
 		if isinstance(Signal._handler, Signal):
@@ -72,6 +78,9 @@ class BaseSignal:
 	@classmethod
 	def getHardSignal(self) -> Any:
 		return HardSignal
+	@classmethod
+	def isActivated(self) -> bool:
+		return isinstance(Signal._handler, Signal)
 
 class SoftSignal(BaseSignal):
 	_force:bool = False
@@ -114,7 +123,7 @@ class Signal(HardSignal):
 	def _activate(self) -> None:
 		_signal.signal(_signal.SIGINT, Signal.signalSoftKill)
 		_signal.signal(_signal.SIGTERM, Signal.signalHardKill)
-	def _get(self, force:bool=True) -> bool:
+	def _check(self, force:bool=True) -> bool:
 		if force:
 			return self.eHard.is_set()
 		return self.eSoft.is_set()
