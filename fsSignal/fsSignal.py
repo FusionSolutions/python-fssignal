@@ -37,29 +37,36 @@ class BaseSignal:
 	_force:bool
 	@classmethod
 	def get(self) -> bool:
-		if not isinstance(Signal._handler, Signal):
-			return False
-		return Signal._handler._check(self._force)
+		if isinstance(Signal._handler, Signal):
+			return Signal._handler._get(self._force)
+		return False
+	@classmethod
+	def getSoft(self) -> bool:
+		if isinstance(Signal._handler, Signal):
+			return Signal._handler._get(False)
+		return False
+	@classmethod
+	def getHard(self) -> bool:
+		if isinstance(Signal._handler, Signal):
+			return Signal._handler._get(True)
+		return False
 	@classmethod
 	def check(self) -> None:
-		if not isinstance(Signal._handler, Signal):
-			return
-		return Signal._handler.get(self._force)
+		if isinstance(Signal._handler, Signal):
+			return Signal._handler._check(self._force)
 	@classmethod
-	def checkSoft(self) -> bool:
-		if not isinstance(Signal._handler, Signal):
-			return False
-		return Signal._handler._check(False)
+	def checkSoft(self) -> None:
+		if isinstance(Signal._handler, Signal):
+			return Signal._handler._check(False)
 	@classmethod
-	def checkHard(self) -> bool:
-		if not isinstance(Signal._handler, Signal):
-			return False
-		return Signal._handler._check(True)
+	def checkHard(self) -> None:
+		if isinstance(Signal._handler, Signal):
+			return Signal._handler._check(True)
 	@classmethod
 	def sleep(self, seconds:Union[int, float], raiseOnKill:bool=False) -> None:
-		if not isinstance(Signal._handler, Signal):
-			return sleep(seconds)
-		return Signal._handler._sleep(seconds, raiseOnKill, self._force)
+		if isinstance(Signal._handler, Signal):
+			return Signal._handler._sleep(seconds, raiseOnKill, self._force)
+		return sleep(seconds)
 	@classmethod
 	def signalSoftKill(self, *args:Any, **kwargs:Any) -> None:
 		if isinstance(Signal._handler, Signal):
@@ -70,9 +77,9 @@ class BaseSignal:
 			return Signal._handler._signalHardKill(*args, **kwargs)
 	@classmethod
 	def iter(self, it:Iterable[Any], checkDelay:float=1.0) -> Iterable[Any]:
-		if not isinstance(Signal._handler, Signal):
-			return it
-		return Signal._handler._iter(it, checkDelay, self._force)
+		if isinstance(Signal._handler, Signal):
+			return Signal._handler._iter(it, checkDelay, self._force)
+		return it
 	@classmethod
 	def softKill(self) -> None:
 		if isinstance(Signal._handler, Signal):
