@@ -3,7 +3,7 @@ from __future__ import annotations
 import traceback,  signal as _signal
 from threading import Event
 from time import monotonic, sleep
-from typing import Callable, Dict, Any, Iterator, Iterable, Optional, Union
+from typing import Callable, Dict, Any, Iterator, Iterable, Optional, Union, Type
 # Third party modules
 # Local modules
 # Program
@@ -92,10 +92,10 @@ class BaseSignal:
 		if isinstance(Signal._handler, Signal):
 			return Signal._handler._reset()
 	@classmethod
-	def getSoftSignal(self) -> Any:
+	def getSoftSignal(self) -> Type[BaseSignal]:
 		return SoftSignal
 	@classmethod
-	def getHardSignal(self) -> Any:
+	def getHardSignal(self) -> Type[BaseSignal]:
 		return HardSignal
 	@classmethod
 	def isActivated(self) -> bool:
