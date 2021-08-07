@@ -4,7 +4,6 @@ import traceback,  signal as _signal
 from threading import Event
 from time import monotonic, sleep
 from typing import Callable, Dict, Any, Iterator, Iterable, Optional, Union
-from types import FrameType
 # Third party modules
 # Local modules
 # Program
@@ -110,15 +109,14 @@ class HardSignal(BaseSignal):
 
 class Signal(HardSignal):
 	_handler:Optional[Signal] = None
-	softKillFn:Optional[Callable[[Signals, FrameType], Any]]
-	hardKillFn:Optional[Callable[[Signals, FrameType], Any]]
+	softKillFn:Optional[Callable[..., Any]]
+	hardKillFn:Optional[Callable[..., Any]]
 	forceKillCounterFn:Optional[Callable[[int, int], Any]]
 	counter:int
 	forceCounter:int
 	eSoft:Event
 	eHard:Event
-	def __init__(self, softKillFn:Optional[Callable[[Signals, FrameType], Any]]=None,
-	hardKillFn:Optional[Callable[[Signals, FrameType], Any]]=None,
+	def __init__(self, softKillFn:Optional[Callable[..., Any]]=None, hardKillFn:Optional[Callable[..., Any]]=None,
 	forceKillCounterFn:Optional[Callable[[int, int], Any]]=None, forceCounter:int=10):
 		self.softKillFn = softKillFn
 		self.hardKillFn = hardKillFn
@@ -182,7 +180,7 @@ class Signal(HardSignal):
 			self.eSoft.set()
 			if callable(self.softKillFn):
 				try:
-					self.softKillFn() # type: ignore
+					self.softKillFn()
 				except:
 					traceback.print_exc()
 	def _hardKill(self) -> None:
@@ -190,7 +188,7 @@ class Signal(HardSignal):
 			self.eHard.set()
 			if callable(self.hardKillFn):
 				try:
-					self.hardKillFn() # type: ignore
+					self.hardKillFn()
 				except:
 					traceback.print_exc()
 	def _reset(self) -> None:
