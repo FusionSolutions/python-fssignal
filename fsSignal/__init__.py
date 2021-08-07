@@ -1,4 +1,4 @@
-__version__ = "0.0.3"
+__version__ = "0.0.6"
 __doc__ = """
 Signal capturer v{}
 Copyright (C) 2021 Fusion Solutions KFT <contact@fusionsolutions.io>
