@@ -195,3 +195,5 @@ class Signal(HardSignal):
 		self.eSoft.clear()
 		self.eHard.clear()
 		self.counter = 0
+
+T_Signal = Union[Signal, Type[BaseSignal]]
