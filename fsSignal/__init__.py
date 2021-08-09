@@ -1,4 +1,4 @@
-__version__ = "0.0.7"
+__version__ = "0.0.8"
 __doc__ = """
 Signal capturer v{}
 Copyright (C) 2021 Fusion Solutions KFT <contact@fusionsolutions.io>
@@ -16,6 +16,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/lgpl.txt>.
 """.format(__version__)
-from .fsSignal import KillSignal, SignalIterator, Signal, BaseSignal
+from .fsSignal import KillSignal, SignalIterator, Signal, SoftSignal, HardSignal, BaseSignal, T_Signal
 
-__all__ = "KillSignal", "SignalIterator", "Signal", "BaseSignal"
+__all__ = "KillSignal", "SignalIterator", "Signal", "SoftSignal", "HardSignal", "BaseSignal", "T_Signal"
