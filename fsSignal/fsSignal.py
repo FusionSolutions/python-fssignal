@@ -7,8 +7,6 @@ from typing import Callable, Dict, Any, Iterator, Iterable, Optional, Union, Typ
 # Third party modules
 # Local modules
 # Program
-Signals = _signal.Signals
-
 class KillSignal(Exception): pass
 
 class SignalIterator(Iterator[Any]):
