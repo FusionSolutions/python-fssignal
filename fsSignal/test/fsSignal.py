@@ -30,7 +30,7 @@ class SignalTest(unittest.TestCase):
 	def test_sleepRaise(self) -> None:
 		self.killmeTimer()
 		with self.assertRaises(KillSignal):
-			self.rootSignal.getSoftSignal().sleep(2, raiseOnKill=True)
+			self.rootSignal.getSoftSignal().sleep(4, raiseOnKill=True)
 		return None
 	def test_iter(self) -> None:
 		s = list(range(5))
@@ -59,7 +59,7 @@ class SignalTest(unittest.TestCase):
 		signal.check()
 		self.assertEqual(signal.get(), False)
 		self.killmeTimer()
-		signal.sleep(2, raiseOnKill=False)
+		signal.sleep(5, raiseOnKill=False)
 		with self.assertRaises(KillSignal):
 			signal.check()
 		self.assertEqual(signal.get(), True)
@@ -93,7 +93,7 @@ class SignalTest(unittest.TestCase):
 	def test_rlock(self) -> None:
 		def AcquireAndSleep() -> None:
 			with locker:
-				sleep(3)
+				sleep(5)
 		signal = self.rootSignal.getSoftSignal()
 		locker = signal.warpLock(RLock())
 		self.assertFalse(locker.owned())
