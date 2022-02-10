@@ -3,9 +3,10 @@ from __future__ import annotations
 import traceback,  signal as _signal
 from threading import Event
 from time import monotonic, sleep
-from typing import Callable, Dict, Any, Iterator, Iterable, Optional, Union, Type
+from typing import Callable, Dict, Any, Iterator, Iterable, Optional, Union, cast
 # Third party modules
 # Local modules
+from .abcs import T_Signal, T_Locker, T_Lock
 # Program
 class KillSignal(Exception): pass
 
@@ -30,74 +31,117 @@ class SignalIterator(Iterator[Any]):
 				raise KillSignal
 		return self.it.__next__()
 
-class BaseSignal:
-	_force:bool
-	@classmethod
+class ExtendedLocker(T_Locker):
+	def __init__(self, lock:T_Lock) -> None:
+		self.lock = lock
+	def __del__(self) -> None:
+		if self.locked():
+			self.release()
+	def acquire(self, blocking:bool=True, timeout:float=-1.0) -> bool:
+		return self.lock.acquire(blocking, timeout)
+	def release(self) -> None:
+		self.lock.release()
+	def owned(self) -> bool:
+		if hasattr(self.lock, "locked"):
+			return self.lock.locked()
+		return self.lock._is_owned()
+	def locked(self) -> bool:
+		if hasattr(self.lock, "locked"):
+			return self.lock.locked()
+		r = self.lock._is_owned()
+		if r:
+			return True
+		r = self.lock.acquire(False)
+		if r:
+			self.lock.release()
+			return False
+		return True
+	def __enter__(self) -> Any:
+		self.lock.acquire()
+	def __exit__(self, type:Any, value:Any, traceback:Any) -> Any:
+		self.lock.release()
+
+class SignalLocker(ExtendedLocker):
+	event:Event
+	def __init__(self, event:Event, lock:T_Lock) -> None:
+		self.event = event
+		self.lock = lock
+	def acquire(self, blocking:bool=True, timeout:float=-1.0) -> bool:
+		r:bool
+		if blocking:
+			if timeout is not None and timeout > 0:
+				for _ in range(5):
+					r = self.lock.acquire(True, timeout/5)
+					if r:
+						return r
+					if self.event.is_set():
+						raise KillSignal
+				return False
+			else:
+				while True:
+					if self.event.is_set():
+						raise KillSignal
+					r = self.lock.acquire(True, 1)
+					if r:
+						return r
+		else:
+			return self.lock.acquire(False)
+
+class BaseSignal(T_Signal):
 	def get(self) -> bool:
 		if isinstance(Signal._handler, Signal):
 			return Signal._handler._get(self._force)
 		return False
-	@classmethod
 	def getSoft(self) -> bool:
 		if isinstance(Signal._handler, Signal):
 			return Signal._handler._get(False)
 		return False
-	@classmethod
 	def getHard(self) -> bool:
 		if isinstance(Signal._handler, Signal):
 			return Signal._handler._get(True)
 		return False
-	@classmethod
 	def check(self) -> None:
 		if isinstance(Signal._handler, Signal):
 			return Signal._handler._check(self._force)
-	@classmethod
 	def checkSoft(self) -> None:
 		if isinstance(Signal._handler, Signal):
 			return Signal._handler._check(False)
-	@classmethod
 	def checkHard(self) -> None:
 		if isinstance(Signal._handler, Signal):
 			return Signal._handler._check(True)
-	@classmethod
 	def sleep(self, seconds:Union[int, float], raiseOnKill:bool=False) -> None:
 		if isinstance(Signal._handler, Signal):
 			return Signal._handler._sleep(seconds, raiseOnKill, self._force)
 		return sleep(seconds)
-	@classmethod
 	def signalSoftKill(self, *args:Any, **kwargs:Any) -> None:
 		if isinstance(Signal._handler, Signal):
 			return Signal._handler._signalSoftKill(*args, **kwargs)
-	@classmethod
 	def signalHardKill(self, *args:Any, **kwargs:Any) -> None:
 		if isinstance(Signal._handler, Signal):
 			return Signal._handler._signalHardKill(*args, **kwargs)
-	@classmethod
 	def iter(self, it:Iterable[Any], checkDelay:float=1.0) -> Iterable[Any]:
 		if isinstance(Signal._handler, Signal):
 			return Signal._handler._iter(it, checkDelay, self._force)
 		return it
-	@classmethod
 	def softKill(self) -> None:
 		if isinstance(Signal._handler, Signal):
 			return Signal._handler._softKill()
-	@classmethod
 	def hardKill(self) -> None:
 		if isinstance(Signal._handler, Signal):
 			return Signal._handler._hardKill()
-	@classmethod
 	def reset(self) -> None:
 		if isinstance(Signal._handler, Signal):
 			return Signal._handler._reset()
-	@classmethod
-	def getSoftSignal(self) -> Type[BaseSignal]:
-		return SoftSignal
-	@classmethod
-	def getHardSignal(self) -> Type[BaseSignal]:
-		return HardSignal
-	@classmethod
+	def getSoftSignal(self) -> T_Signal:
+		return SoftSignal()
+	def getHardSignal(self) -> T_Signal:
+		return HardSignal()
 	def isActivated(self) -> bool:
 		return isinstance(Signal._handler, Signal)
+	def warpLock(self, lock:Any) -> T_Locker:
+		if isinstance(Signal._handler, Signal):
+			return Signal._handler._warpLock(lock, self._force)
+		return ExtendedLocker(lock)
 
 class SoftSignal(BaseSignal):
 	_force:bool = False
@@ -143,8 +187,8 @@ class Signal(HardSignal):
 		self.eHard = states["eHard"]
 		self._activate()
 	def _activate(self) -> None:
-		_signal.signal(_signal.SIGINT, Signal.signalSoftKill)
-		_signal.signal(_signal.SIGTERM, Signal.signalHardKill)
+		_signal.signal(_signal.SIGINT, self.signalSoftKill)
+		_signal.signal(_signal.SIGTERM, self.signalHardKill)
 	def _get(self, force:bool=True) -> bool:
 		if force:
 			return self.eHard.is_set()
@@ -159,6 +203,8 @@ class Signal(HardSignal):
 		return None
 	def _iter(self, it:Iterable[Any], checkDelay:float=1.0, force:bool=True) -> Iterator[Any]:
 		return SignalIterator(self.eHard if force else self.eSoft, it, checkDelay)
+	def _warpLock(self, lock:Any, force:bool=True) -> T_Locker:
+		return SignalLocker(self.eHard if force else self.eSoft, cast(T_Lock, lock))
 	def _signalSoftKill(self, *args:Any, **kwargs:Any) -> None:
 		self._softKill()
 		if not self.eHard.is_set():
@@ -193,5 +239,3 @@ class Signal(HardSignal):
 		self.eSoft.clear()
 		self.eHard.clear()
 		self.counter = 0
-
-T_Signal = Union[Signal, Type[BaseSignal]]

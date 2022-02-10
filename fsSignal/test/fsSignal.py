@@ -1,11 +1,11 @@
 # Builtin modules
 import os, unittest, signal as _signal
-from threading import Timer
+from threading import Lock, RLock, Timer, Thread
 from time import monotonic, sleep
 from typing import List
 # Third party modules
 # Local modules
-from .. import Signal, KillSignal
+from .. import Signal, KillSignal, T_Signal, SoftSignal, HardSignal
 # Program
 class SignalTest(unittest.TestCase):
 	rootSignal:Signal
@@ -30,7 +30,7 @@ class SignalTest(unittest.TestCase):
 	def test_sleepRaise(self) -> None:
 		self.killmeTimer()
 		with self.assertRaises(KillSignal):
-			self.rootSignal.getSoftSignal().sleep(2, raiseOnKill=True)
+			self.rootSignal.getSoftSignal().sleep(4, raiseOnKill=True)
 		return None
 	def test_iter(self) -> None:
 		s = list(range(5))
@@ -59,7 +59,81 @@ class SignalTest(unittest.TestCase):
 		signal.check()
 		self.assertEqual(signal.get(), False)
 		self.killmeTimer()
-		signal.sleep(2, raiseOnKill=False)
+		signal.sleep(5, raiseOnKill=False)
 		with self.assertRaises(KillSignal):
 			signal.check()
 		self.assertEqual(signal.get(), True)
+	def test_lock(self) -> None:
+		signal = self.rootSignal.getSoftSignal()
+		locker = signal.warpLock(Lock())
+		self.assertFalse(locker.owned())
+		self.assertFalse(locker.locked())
+		#
+		self.assertTrue(locker.acquire())
+		self.assertTrue(locker.owned())
+		self.assertTrue(locker.locked())
+		self.assertFalse(locker.acquire(timeout=0.1))
+		#
+		self.killmeTimer()
+		with self.assertRaises(KillSignal):
+			locker.acquire()
+		locker.release()
+		with self.assertRaises(RuntimeError):
+			locker.release()
+		return None
+	def test_lockWith(self) -> None:
+		signal = self.rootSignal.getSoftSignal()
+		locker = signal.warpLock(Lock())
+		with locker:
+			self.assertFalse(locker.acquire(timeout=0.1))
+			self.killmeTimer()
+			with self.assertRaises(KillSignal):
+				locker.acquire()
+		return None
+	def test_rlock(self) -> None:
+		def AcquireAndSleep() -> None:
+			with locker:
+				sleep(5)
+		signal = self.rootSignal.getSoftSignal()
+		locker = signal.warpLock(RLock())
+		self.assertFalse(locker.owned())
+		self.assertFalse(locker.locked())
+		#
+		self.assertTrue(locker.acquire())
+		self.assertTrue(locker.owned())
+		self.assertTrue(locker.locked())
+		self.assertTrue(locker.acquire(timeout=0.1))
+		locker.release()
+		locker.release()
+		#
+		self.assertFalse(locker.owned())
+		self.assertFalse(locker.locked())
+		thr = Thread(target=AcquireAndSleep, daemon=True)
+		thr.start()
+		signal.sleep(1)
+		self.assertFalse(locker.owned())
+		self.assertTrue(locker.locked())
+		#
+		self.killmeTimer()
+		with self.assertRaises(KillSignal):
+			locker.acquire()
+		thr.join()
+		with self.assertRaises(RuntimeError):
+			locker.release()
+		return None
+	def test_rlockStress(self) -> None:
+		signal = self.rootSignal.getSoftSignal()
+		locker = signal.warpLock(RLock())
+		for i in range(100):
+			self.assertTrue(locker.acquire())
+			self.assertTrue(locker.owned())
+			self.assertTrue(locker.locked())
+			locker.release()
+	def test_types(self) -> None:
+		signal:T_Signal
+		signal = SoftSignal()
+		signal = HardSignal()
+		signal = self.rootSignal.getSoftSignal()
+		signal = self.rootSignal.getHardSignal()
+		signal = self.rootSignal
+		signal
