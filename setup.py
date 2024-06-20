@@ -9,7 +9,7 @@ pwd = os.path.abspath(os.path.dirname(__file__))
 
 setup(
 	name                          = "python-fssignal",
-	version                       = "0.1.0",
+	version                       = "0.1.1",
 	description                   = "Signal capturer",
 	keywords                      = "signal capture utility fusion solutions fusionsolutions",
 	author                        = "Andor `iFA` Rajci - Fusions Solutions KFT",
