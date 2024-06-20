@@ -1,10 +1,12 @@
 # Builtin modules
 from __future__ import annotations
 from abc import ABCMeta, abstractmethod
-from typing import Any, Iterable, Union
+from typing import Any, Iterable, Union, TypeVar
 # Third party modules
 # Local modules
 # Program
+T = TypeVar("T")
+
 class T_Lock(metaclass=ABCMeta):
 	@abstractmethod
 	def acquire(self, blocking:bool=..., timeout:float=...) -> bool: ...
@@ -55,7 +57,7 @@ class T_Signal(metaclass=ABCMeta):
 	@abstractmethod
 	def signalHardKill(self, *args:Any, **kwargs:Any) -> None: ...
 	@abstractmethod
-	def iter(self, it:Iterable[Any], checkDelay:float=...) -> Iterable[Any]: ...
+	def iter(self, it:Iterable[T], checkDelay:float=...) -> Iterable[T]: ...
 	@abstractmethod
 	def softKill(self) -> None: ...
 	@abstractmethod

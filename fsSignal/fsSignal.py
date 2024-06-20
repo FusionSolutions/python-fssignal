@@ -3,27 +3,27 @@ from __future__ import annotations
 import traceback,  signal as _signal
 from threading import Event
 from time import monotonic, sleep
-from typing import Callable, Dict, Any, Iterator, Iterable, Optional, Union, cast
+from typing import Callable, Dict, Iterator, Iterable, Optional, Union, Any, cast
 # Third party modules
 # Local modules
-from .abcs import T_Signal, T_Locker, T_Lock
+from .abcs import T_Signal, T_Locker, T_Lock, T
 # Program
 class KillSignal(Exception): pass
 
-class SignalIterator(Iterator[Any]):
+class SignalIterator(Iterator[T]):
 	__slots__ = ("event", "it", "checkDelay", "lastCheck")
 	event:Event
-	it:Iterator[Any]
+	it:Iterator[T]
 	checkDelay:float
 	lastCheck:float
-	def __init__(self, event:Event, it:Iterable[Any], checkDelay:float=1.0):
+	def __init__(self, event:Event, it:Iterable[T], checkDelay:float=1.0):
 		self.event      = event
 		self.it         = it.__iter__()
 		self.checkDelay = checkDelay
 		self.lastCheck  = monotonic()
-	def __iter__(self) -> Iterator[Any]:
+	def __iter__(self) -> Iterator[T]:
 		return self
-	def __next__(self) -> Any:
+	def __next__(self) -> T:
 		m = monotonic()
 		if m-self.lastCheck > self.checkDelay:
 			self.lastCheck = m
@@ -56,8 +56,9 @@ class ExtendedLocker(T_Locker):
 			self.lock.release()
 			return False
 		return True
-	def __enter__(self) -> Any:
+	def __enter__(self) -> ExtendedLocker:
 		self.lock.acquire()
+		return self
 	def __exit__(self, type:Any, value:Any, traceback:Any) -> Any:
 		self.lock.release()
 
@@ -119,7 +120,7 @@ class BaseSignal(T_Signal):
 	def signalHardKill(self, *args:Any, **kwargs:Any) -> None:
 		if isinstance(Signal._handler, Signal):
 			return Signal._handler._signalHardKill(*args, **kwargs)
-	def iter(self, it:Iterable[Any], checkDelay:float=1.0) -> Iterable[Any]:
+	def iter(self, it:Iterable[T], checkDelay:float=1.0) -> Iterable[T]:
 		if isinstance(Signal._handler, Signal):
 			return Signal._handler._iter(it, checkDelay, self._force)
 		return it
@@ -201,7 +202,7 @@ class Signal(HardSignal):
 		if (self.eHard if force else self.eSoft).wait(float(seconds)) and raiseOnKill:
 			raise KillSignal
 		return None
-	def _iter(self, it:Iterable[Any], checkDelay:float=1.0, force:bool=True) -> Iterator[Any]:
+	def _iter(self, it:Iterable[T], checkDelay:float=1.0, force:bool=True) -> Iterator[T]:
 		return SignalIterator(self.eHard if force else self.eSoft, it, checkDelay)
 	def _warpLock(self, lock:Any, force:bool=True) -> T_Locker:
 		return SignalLocker(self.eHard if force else self.eSoft, cast(T_Lock, lock))
